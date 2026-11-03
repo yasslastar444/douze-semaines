@@ -125,6 +125,7 @@ var TRACKS = [
 
 function buildMusic(root) {
   var store = {};
+  var fields = [];
   try { store = JSON.parse(localStorage.getItem("w1") || "{}"); } catch (e) {}
   function persist() { try { localStorage.setItem("w1", JSON.stringify(store)); } catch (e) {} }
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; }
@@ -144,28 +145,37 @@ function buildMusic(root) {
     var lab = el("label", "", "À toi : ta musique pour ça"); lab.htmlFor = "t" + i;
     var ti = el("input"); ti.id = "t" + i; ti.placeholder = "Titre, artiste";
     var tx = el("textarea"); tx.rows = 3; tx.placeholder = "Pourquoi celle-là ?"; tx.setAttribute("aria-label", "Pourquoi celle-là ?");
+    fields[i] = {ti: ti, tx: tx};
     var s = store[i] || {}; ti.value = s.t || ""; tx.value = s.w || "";
     function save() { store[i] = {t: ti.value, w: tx.value}; persist(); }
     ti.addEventListener("input", save); tx.addEventListener("input", save);
     y.appendChild(lab); y.appendChild(ti); y.appendChild(tx); art.appendChild(y);
     root.appendChild(art);
   });
-  var btn = el("button", "copy", "Copier mes réponses pour Yassir"); btn.type = "button";
+  var btn = el("button", "copy", "Sauvegarder mes réponses pour Yassir"); btn.type = "button";
   var out = el("p", "copied"); out.setAttribute("role", "status");
   btn.addEventListener("click", function () {
-    var lines = [];
-    TRACKS.forEach(function (k, i) { var s = store[i]; if (s && (s.t || s.w)) lines.push(k.q + "\n" + (s.t || "") + (s.w ? "\n" + s.w : "")); });
-    if (!lines.length) { out.textContent = "Rien à copier pour l’instant."; return; }
-    var txt = lines.join("\n\n");
-    var done = function () { out.textContent = "C’est copié. Colle-le dans un message pour me l’envoyer."; };
-    var fail = function () {
-      out.textContent = "Copie ce texte et envoie-le-moi :";
-      var fb = el("textarea"); fb.readOnly = true; fb.rows = 8; fb.value = txt; out.appendChild(fb); fb.select();
-    };
-    try { navigator.clipboard.writeText(txt).then(done, fail); } catch (e) { fail(); }
+    out.textContent = "Sauvegarde…";
+    fetch("/api/save", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(store)})
+      .then(function (r) { out.textContent = r.ok ? "C’est sauvegardé, merci !" : "La sauvegarde a échoué. Réessaie dans un instant."; })
+      .catch(function () { out.textContent = "La sauvegarde a échoué. Vérifie ta connexion et réessaie."; });
   });
   root.appendChild(btn); root.appendChild(out);
-  root.appendChild(el("p", "copied", "Rien n’est envoyé automatiquement : tes réponses restent sur ton appareil."));
+  root.appendChild(el("p", "copied", "Tes réponses ne sont enregistrées que quand tu cliques sur le bouton."));
+
+  // Recharge les réponses déjà sauvegardées (valable sur n’importe quel appareil)
+  fetch("/api/answers", {cache: "no-store"})
+    .then(function (r) { return r.ok ? r.json() : {}; })
+    .then(function (saved) {
+      Object.keys(saved || {}).forEach(function (i) {
+        if (!fields[i]) return;
+        store[i] = saved[i];
+        fields[i].ti.value = saved[i].t || "";
+        fields[i].tx.value = saved[i].w || "";
+      });
+      persist();
+    })
+    .catch(function () {});
 }
 var w1 = document.getElementById("w1");
 if (w1) buildMusic(w1);
