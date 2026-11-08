@@ -53,13 +53,20 @@ button.copy{font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
 .gallery{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin:.9rem 0 0;align-items:start}
 .gallery img{width:100%;height:auto;display:block;border-radius:.4rem}
 .gallery img.wide{grid-column:1/-1}
+.opts{display:grid;gap:.45rem;margin:.2rem 0 .8rem;max-width:34rem}
+.opt{display:flex;align-items:center;border:1px solid var(--line);border-radius:.4rem;padding:.6rem .75rem;cursor:pointer;font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;font-weight:500;font-size:1rem}
+input[type=radio]{width:auto;margin:0 .6rem 0 0;accent-color:var(--accent)}
+.opt.right{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.opt.wrong{border-style:dashed;text-decoration:line-through;color:var(--mute)}
+button.copy:disabled{opacity:.45;cursor:not-allowed}
+.quiz-btn{margin-bottom:.4rem}
 @media (max-width:30rem){.body{padding-left:.25rem}}
 </style>
 </head>
 <body>
 <main>
   <h1>Douze semaines</h1>
-  <p class="lead">Je pars, mais je je pense que ça peut être cool de te faire rentrer dans mon monde :) Chaque dimanche, une nouvelle page s’ouvre ici. Douze rendez-vous pour mieux me connaître.</p>
+  <p class="lead">Je pars, mais je ne veux pas disparaître. Chaque dimanche, une nouvelle page s’ouvre ici : une histoire, une chanson, une question. Douze rendez-vous pour mieux me connaître.</p>
   <p class="status" id="status"></p>
   <ol id="list"></ol>
   <p class="end">Fait avec soin, depuis l’autre bout du monde.</p>
@@ -69,7 +76,7 @@ button.copy{font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
 var START = new Date(2026, 10, 1); // 1er novembre 2026 (mois 0-11 : 10 = novembre)
 var WEEKS = [
   {t:"10 musiques qui comptent pour moi", b:"<div id='w1'></div>"},
-  {t:"Un morceau, son histoire", b:"<p>Pourquoi je l’ai écrit, ce qu’il raconte, ce qui s’est passé ce jour-là.</p><p class='todo'>À remplacer : le titre, le contexte et un lien pour l’écouter.</p>"},
+  {t:"Le quiz : devine-moi", b:"<div id='w2'></div>"},
   {t:"Le quiz : devine-moi", b:"<p>Cinq questions sur moi. Réponds sans tricher, je te dis ce qu’il en est la semaine prochaine.</p><p class='todo'>À remplacer par tes 5 questions (par exemple : mon plus gros défaut, mon plat préféré…).</p>"},
   {t:"Ce que j’écoute en boucle", b:"<p>Le titre que j’ai le plus écouté ces derniers temps : <a href='https://open.spotify.com/track/3FZoov0ORtnr8TznSNI1y2' target='_blank' rel='noopener'>« brand new chanel$ » de Slayyyter</a>.</p><p class='todo'>À compléter avec les autres titres de ta liste.</p>"},
   {t:"Une photo, une histoire", b:"<p class='todo'>À remplacer par une photo d’enfance (ou d’ado) et l’histoire derrière.</p>"},
@@ -119,12 +126,42 @@ var TRACKS = [
   {q:"Celle qui me fait penser à toi", t:"Supercut", a:"Lorde", c:"La chanson parle d’une relation passée, terminée, où tu te rejoues les souvenirs de façon un peu idéalisée, je m’y retrouve à fond, parce que tout ce qu’on aura pour les prochains mois, ce sont les souvenirs des quelques fois où on s’est vus, les quelques photos qu'on a pu prendre."}
 ];
 
+var STORE = {}, FIELDS = {};
+try { STORE = JSON.parse(localStorage.getItem("w1") || "{}"); } catch (e) {}
+function persist() { try { localStorage.setItem("w1", JSON.stringify(STORE)); } catch (e) {} }
+function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; }
+
+function saveButton(root) {
+  var btn = el("button", "copy", "Sauvegarder mes réponses pour Yassir"); btn.type = "button";
+  var out = el("p", "copied"); out.setAttribute("role", "status");
+  btn.addEventListener("click", function () {
+    out.textContent = "Sauvegarde…";
+    fetch("/api/save", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(STORE)})
+      .then(function (r) { out.textContent = r.ok ? "C’est sauvegardé, merci !" : "La sauvegarde a échoué. Réessaie dans un instant."; })
+      .catch(function () { out.textContent = "La sauvegarde a échoué. Vérifie ta connexion et réessaie."; });
+  });
+  root.appendChild(btn); root.appendChild(out);
+  root.appendChild(el("p", "copied", "Tes réponses ne sont enregistrées que quand tu cliques sur le bouton."));
+}
+
+// Recharge les réponses déjà sauvegardées (valable sur n’importe quel appareil)
+function loadSaved() {
+  fetch("/api/answers", {cache: "no-store"})
+    .then(function (r) { return r.ok ? r.json() : {}; })
+    .then(function (saved) {
+      Object.keys(saved || {}).forEach(function (k) {
+        STORE[k] = saved[k];
+        var f = FIELDS[k];
+        if (!f) return;
+        if (f.ti) f.ti.value = saved[k].t || "";
+        f.tx.value = saved[k].w || "";
+      });
+      persist();
+    })
+    .catch(function () {});
+}
+
 function buildMusic(root) {
-  var store = {};
-  var fields = [];
-  try { store = JSON.parse(localStorage.getItem("w1") || "{}"); } catch (e) {}
-  function persist() { try { localStorage.setItem("w1", JSON.stringify(store)); } catch (e) {} }
-  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; }
   TRACKS.forEach(function (k, i) {
     var art = el("article", "track");
     art.appendChild(el("h3", "", k.q));
@@ -141,40 +178,78 @@ function buildMusic(root) {
     var lab = el("label", "", "À toi : ta musique pour ça"); lab.htmlFor = "t" + i;
     var ti = el("input"); ti.id = "t" + i; ti.placeholder = "Titre, artiste";
     var tx = el("textarea"); tx.rows = 3; tx.placeholder = "Pourquoi celle-là ?"; tx.setAttribute("aria-label", "Pourquoi celle-là ?");
-    fields[i] = {ti: ti, tx: tx};
-    var s = store[i] || {}; ti.value = s.t || ""; tx.value = s.w || "";
-    function save() { store[i] = {t: ti.value, w: tx.value}; persist(); }
+    FIELDS[i] = {ti: ti, tx: tx};
+    var s = STORE[i] || {}; ti.value = s.t || ""; tx.value = s.w || "";
+    function save() { STORE[i] = {t: ti.value, w: tx.value}; persist(); }
     ti.addEventListener("input", save); tx.addEventListener("input", save);
     y.appendChild(lab); y.appendChild(ti); y.appendChild(tx); art.appendChild(y);
     root.appendChild(art);
   });
-  var btn = el("button", "copy", "Sauvegarder mes réponses pour Yassir"); btn.type = "button";
-  var out = el("p", "copied"); out.setAttribute("role", "status");
-  btn.addEventListener("click", function () {
-    out.textContent = "Sauvegarde…";
-    fetch("/api/save", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(store)})
-      .then(function (r) { out.textContent = r.ok ? "C’est sauvegardé, merci !" : "La sauvegarde a échoué. Réessaie dans un instant."; })
-      .catch(function () { out.textContent = "La sauvegarde a échoué. Vérifie ta connexion et réessaie."; });
-  });
-  root.appendChild(btn); root.appendChild(out);
-  root.appendChild(el("p", "copied", "Tes réponses ne sont enregistrées que quand tu cliques sur le bouton."));
-
-  // Recharge les réponses déjà sauvegardées (valable sur n’importe quel appareil)
-  fetch("/api/answers", {cache: "no-store"})
-    .then(function (r) { return r.ok ? r.json() : {}; })
-    .then(function (saved) {
-      Object.keys(saved || {}).forEach(function (i) {
-        if (!fields[i]) return;
-        store[i] = saved[i];
-        fields[i].ti.value = saved[i].t || "";
-        fields[i].tx.value = saved[i].w || "";
-      });
-      persist();
-    })
-    .catch(function () {});
+  saveButton(root);
 }
 var w1 = document.getElementById("w1");
 if (w1) buildMusic(w1);
+
+var QUIZ = [
+  {q:"Café, thé ou matcha ?", o:["Le thé","Le matcha","Le café","Aucun des trois"], a:2},
+  {q:"Mon plat préféré", o:["Les pâtes carbonara","Le hachis parmentier","Les sushis","La pizza"], a:1},
+  {q:"Sexe : plutôt matin ou soir ?", o:["Matin","Soir","Les deux","Ni l’un ni l’autre"], a:2},
+  {q:"Ma série de réconfort", o:["Friends","How I Met Your Mother","The Big Bang Theory","Gilmore Girls"], a:2},
+  {q:"Ce qui m’énerve le plus chez les gens", o:["Ceux qui jugent sans chercher à comprendre","L’hypocrisie","Ceux qui n’assument jamais leurs erreurs","Le manque de sens critique"], a:3},
+  {q:"Ce que j’ai mis le plus de temps à apprendre sur moi", o:["Que je n’ai pas besoin de l’avis des autres","Que je suis plus fort que je ne le pensais","Que personne ne se battra pour moi si je ne le fais pas moi-même","Que je ne peux pas tout contrôler"], a:2},
+  {q:"Une chose dont je suis fier et que je dis rarement", o:["Avoir appris à poser mes limites sans m’excuser","Être très à l’aise seul avec moi-même, parce que j’ai appris à l’être","Avoir su me relever après des moments très difficiles","Avoir trouvé le courage de partir quand il le fallait"], a:1},
+  {q:"Ce qui me donne le plus confiance en quelqu’un", o:["Sa constance dans le temps","Son humour","L’honnêteté, quitte à me blesser d’abord","Sa générosité"], a:2},
+  {q:"Ma vie en Belgique me manque…", o:["Pas du tout","Un peu","Beaucoup","Seulement les frites"], a:1}
+];
+
+function buildQuiz(root) {
+  var score = 0, done = 0;
+  root.appendChild(el("p", "", "Neuf questions sur moi. Choisis ce que tu penses être ma réponse, valide, et tu verras si tu as vu juste. Donne ensuite la tienne juste en dessous."));
+  var total = el("p", "tt"); total.setAttribute("role", "status");
+  QUIZ.forEach(function (k, i) {
+    var art = el("article", "track");
+    art.appendChild(el("h3", "", "Question " + (i + 1) + " sur " + QUIZ.length));
+    art.appendChild(el("p", "tt", k.q));
+    var opts = el("div", "opts"); opts.setAttribute("role", "radiogroup"); opts.setAttribute("aria-label", k.q);
+    var ok = el("button", "copy quiz-btn", "Valider ma réponse"); ok.type = "button"; ok.disabled = true;
+    var res = el("p", "copied"); res.setAttribute("role", "status");
+    var items = [];
+    k.o.forEach(function (txt, j) {
+      var lab = el("label", "opt");
+      var r = document.createElement("input"); r.type = "radio"; r.name = "quiz" + i; r.value = j;
+      r.addEventListener("change", function () { ok.disabled = false; });
+      lab.appendChild(r); lab.appendChild(el("span", "", txt));
+      opts.appendChild(lab); items.push({lab: lab, r: r});
+    });
+    ok.addEventListener("click", function () {
+      var pick = -1;
+      items.forEach(function (it, j) { if (it.r.checked) pick = j; it.r.disabled = true; });
+      if (pick < 0) { items.forEach(function (it) { it.r.disabled = false; }); return; }
+      ok.disabled = true;
+      items[k.a].lab.classList.add("right");
+      if (pick === k.a) { score++; res.textContent = "Bonne réponse !"; }
+      else { items[pick].lab.classList.add("wrong"); res.textContent = "Raté. La bonne réponse : " + k.o[k.a]; }
+      done++;
+      if (done === QUIZ.length) total.textContent = "Ton score : " + score + " sur " + QUIZ.length + ".";
+    });
+    art.appendChild(opts); art.appendChild(ok); art.appendChild(res);
+
+    var y = el("div", "yours");
+    var lab = el("label", "", "À toi : et toi, ta réponse ?"); lab.htmlFor = "a" + i;
+    var tx = el("textarea"); tx.id = "a" + i; tx.rows = 2; tx.placeholder = "Ta réponse";
+    var key = "q" + i;
+    FIELDS[key] = {tx: tx};
+    tx.value = (STORE[key] || {}).w || "";
+    tx.addEventListener("input", function () { STORE[key] = {w: tx.value}; persist(); });
+    y.appendChild(lab); y.appendChild(tx); art.appendChild(y);
+    root.appendChild(art);
+  });
+  root.appendChild(total);
+  saveButton(root);
+}
+var w2 = document.getElementById("w2");
+if (w2) buildQuiz(w2);
+loadSaved();
 
 var st = document.getElementById("status");
 if (!preview && now < START) {
