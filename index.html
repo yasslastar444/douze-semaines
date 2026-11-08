@@ -126,7 +126,7 @@ var TRACKS = [
   {q:"Celle qui me fait penser à toi", t:"Supercut", a:"Lorde", c:"La chanson parle d’une relation passée, terminée, où tu te rejoues les souvenirs de façon un peu idéalisée, je m’y retrouve à fond, parce que tout ce qu’on aura pour les prochains mois, ce sont les souvenirs des quelques fois où on s’est vus, les quelques photos qu'on a pu prendre."}
 ];
 
-var STORE = {}, FIELDS = {};
+var STORE = {}, FIELDS = {}, REVEALS = {};
 try { STORE = JSON.parse(localStorage.getItem("w1") || "{}"); } catch (e) {}
 function persist() { try { localStorage.setItem("w1", JSON.stringify(STORE)); } catch (e) {} }
 function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; return n; }
@@ -151,6 +151,7 @@ function loadSaved() {
     .then(function (saved) {
       Object.keys(saved || {}).forEach(function (k) {
         STORE[k] = saved[k];
+        if (REVEALS[k]) REVEALS[k](saved[k]);
         var f = FIELDS[k];
         if (!f) return;
         if (f.ti) f.ti.value = saved[k].t || "";
@@ -213,7 +214,7 @@ function buildQuiz(root) {
     var opts = el("div", "opts"); opts.setAttribute("role", "radiogroup"); opts.setAttribute("aria-label", k.q);
     var ok = el("button", "copy quiz-btn", "Valider ma réponse"); ok.type = "button"; ok.disabled = true;
     var res = el("p", "copied"); res.setAttribute("role", "status");
-    var items = [];
+    var items = [], shown = false;
     k.o.forEach(function (txt, j) {
       var lab = el("label", "opt");
       var r = document.createElement("input"); r.type = "radio"; r.name = "quiz" + i; r.value = j;
@@ -221,16 +222,26 @@ function buildQuiz(root) {
       lab.appendChild(r); lab.appendChild(el("span", "", txt));
       opts.appendChild(lab); items.push({lab: lab, r: r});
     });
-    ok.addEventListener("click", function () {
-      var pick = -1;
-      items.forEach(function (it, j) { if (it.r.checked) pick = j; it.r.disabled = true; });
-      if (pick < 0) { items.forEach(function (it) { it.r.disabled = false; }); return; }
+    function reveal(pick) {
+      if (shown || pick == null || !items[pick]) return;
+      shown = true;
+      items.forEach(function (it) { it.r.disabled = true; });
+      items[pick].r.checked = true;
       ok.disabled = true;
       items[k.a].lab.classList.add("right");
       if (pick === k.a) { score++; res.textContent = "Bonne réponse !"; }
       else { items[pick].lab.classList.add("wrong"); res.textContent = "Raté. La bonne réponse : " + k.o[k.a]; }
       done++;
       if (done === QUIZ.length) total.textContent = "Ton score : " + score + " sur " + QUIZ.length + ".";
+    }
+    var gkey = "g" + i;
+    REVEALS[gkey] = function (g) { reveal(g && g.p); };
+    ok.addEventListener("click", function () {
+      var pick = -1;
+      items.forEach(function (it, j) { if (it.r.checked) pick = j; });
+      if (pick < 0) return;
+      STORE[gkey] = {p: pick, t: k.o[pick]}; persist();
+      reveal(pick);
     });
     art.appendChild(opts); art.appendChild(ok); art.appendChild(res);
 
@@ -243,6 +254,7 @@ function buildQuiz(root) {
     tx.addEventListener("input", function () { STORE[key] = {w: tx.value}; persist(); });
     y.appendChild(lab); y.appendChild(tx); art.appendChild(y);
     root.appendChild(art);
+    if (STORE[gkey]) reveal(STORE[gkey].p);
   });
   root.appendChild(total);
   saveButton(root);
