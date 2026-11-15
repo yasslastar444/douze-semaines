@@ -296,15 +296,13 @@ var W3_BXL = [
   {g:"Faciles, en journée", items:[
     "Un café avec un livre ou un carnet, ou une balade au Cinquantenaire ou au Bois de la Cambre.",
     "Le marché aux puces de la place du Jeu de Balle, aux Marolles.",
-    "Un film seul au cinéma, à la Cinematek ou aux Galeries.",
-    "Un musée : l’expo « Inuit – Impressions du Grand Nord canadien » au Musée Art &amp; Histoire (ouverte depuis le 16 octobre), ou l’expo Lucky Luke au Musée de la BD. Beaucoup de musées sont fermés le lundi, vérifie avant."]},
+    "Un film seul au cinéma.",
+    "Atelier cuisine, workshop créatif type céramique, travail du bois etc.",
+    "Un musée : l’expo « Inuit – Impressions du Grand Nord canadien » au Musée Art &amp; Histoire (ouverte depuis le 16 octobre), ou l’expo Lucky Luke au Musée de la BD."]},
   {g:"Un cran au-dessus", items:[
-    "<b>Dimanche 22 novembre :</b> le concert d’InAlto et AkroPercu au Palais du Coudenberg, de la musique baroque et du théâtre physique dans les ruines de l’ancien palais.",
-    "<b>Du 20 au 22 novembre :</b> Courts Mais Trash + Queer Mais Trash à l’Espace Magh, un festival de cinéma indépendant et décalé.",
     "<b>Jusqu’au 7 décembre :</b> Ars Musica, un festival de musique contemporaine autour du Grand Nord. Choisis un concert."]},
   {g:"Plus audacieux", items:[
     "<b>Du 19 au 21 novembre :</b> Balkan Trafik! à la Bourse, un festival indoor avec concerts, village et gastronomie des Balkans. Le billet est valable pour une journée.",
-    "<b>Samedi 21 novembre :</b> le Listen Festival, 24 heures de musique électronique dans 15 lieux, dont plusieurs gares de Bruxelles. Seulement si tu aimes vraiment ça."]}
 ];
 var W3_RUN = [
   "<b>BXL Run Crew :</b> des sorties sociales à 9 ou 10 km/h, ouvertes à ceux qui tiennent environ 45 minutes à allure tranquille. Le lundi (5 km) et le jeudi (10 km).",
@@ -347,15 +345,15 @@ function buildWeek3(root) {
   function ph(cls, html) { var p = el("p", cls); p.innerHTML = html; root.appendChild(p); }
 
   var note = el("div", "note");
-  note.appendChild(el("p", "", "Petit mot avant de commencer : j’ai changé le plan de cette semaine, et je l’ai fait exprès. Ce dont on a parlé cette semaine m’a paru plus important que le reste du programme, alors j’ai préféré passer par là."));
-  note.appendChild(el("p", "", "Cette page est une todo list à réaliser d’ici dimanche prochain. Ce n’est pas un devoir noté : c’est une invitation à passer du temps avec toi, puis à écrire ce que tu ressens, comme dans un journal."));
-  note.appendChild(el("p", "", "Cette semaine, mon objectif est aussi d’apprendre à te connaître quand tu es seul, entre toi et toi-même. C’est une version inédite de toi, qui doit encore grandir, et j’aimerais qu’elle ait la place de le faire."));
+  note.appendChild(el("p", "", "Petit mot avant de commencer, j’ai changé le plan de cette semaine, et je l’ai fait exprès. Ce dont on a parlé cette semaine m’a paru plus important que le reste du programme, alors j’ai préféré passer par là."));
+  note.appendChild(el("p", "", "Cette page est une todo list à réaliser d’ici dimanche prochain. C’est une invitation à passer du temps avec toi et toi-même, puis à écrire ce que tu ressens, comme dans un journal pour te forcer à l'introspection."));
+  note.appendChild(el("p", "", "Cette semaine, on renverse un peu la dynamique de moi à toi, mon objectif est aussi d’apprendre à te connaître quand tu es seul, entre toi et toi-même. C’est une version inédite de toi, qui doit encore grandir, et j’aimerais qu’elle ait la place de le faire."));
   root.appendChild(note);
 
   root.appendChild(el("h3", "sec", "Le cadre"));
-  root.appendChild(el("p", "", "Un solo date, c’est un vrai rendez-vous, mais avec toi. Tu choisis une activité que tu ferais volontiers avec quelqu’un, et tu la fais seul, avec la même attention que pour un rendez-vous à deux. L’idée n’est pas de remplir un vide : c’est de découvrir ce que ça fait d’être bien accompagné par soi-même."));
-  root.appendChild(el("p", "", "J’ai découvert ça avec le livre *The Artist’s Way* de Julia Cameron. Elle appelle ça l’artist date : une sortie d’environ deux heures, seul, pour nourrir ta curiosité. Son idée est que la part créative et sensible de toi a besoin d’attention et de jeu, et qu’elle ne se montre pas quand il y a du bruit autour. Passer du temps seul avec toi, c’est aussi apprendre ce que tu aimes vraiment, quand personne ne regarde.".replace(/\*/g, "")));
-  root.appendChild(el("p", "", "Les règles du jeu : une seule activité, d’une à trois heures. Le téléphone reste en silence dans ta poche, et tu ne le sors que pour une photo. Tu y vas pour toi, pas pour être vu ni pour avoir quelque chose à raconter. Et il n’y a pas de bonne façon de le vivre : te sentir gêné, t’ennuyer ou trouver ça nul, ce sont des réponses valables, et de la matière pour ton journal."));
+  root.appendChild(el("p", "", "Un solo date, c’est un vrai date, mais avec toi. Tu choisis une activité que tu ferais volontiers avec quelqu’un, et tu la fais seul, avec la même intention ;) que pour un rendez-vous à deux. L’idée n’est pas de remplir un vide, c’est de découvrir ce que ça fait d’être BIEN accompagné par soi-même."));
+  root.appendChild(el("p", "", "J’ai découvert ça avec le livre *The Artist’s Way* de Julia Cameron. Elle appelle ça l’artist date : une sortie d’environ deux heures, seul, pour nourrir ta curiosité. Son idée est que la part créative et sensible de toi a besoin d’attention et de jeu, et qu’elle ne se montre pas quand il y a du bruit autour. Passer du temps seul avec toi, c’est aussi apprendre ce que tu aimes vraiment, quand personne ne regarde, et nourir une partie de toi qui ne sort pas d'habitude.".replace(/\*/g, "")));
+  root.appendChild(el("p", "", "Les règles : une seule activité, d’une à trois heures. Le téléphone reste le plus possuble dans ta poche, pas de réseaux sociaux, pas de dating apps pour passer le temps, pas de doomscrolling, et tu ne le sors que pour une photo. Tu y vas pour toi, pas pour être vu ni pour avoir quelque chose à raconter. Et il n’y a pas de bonne façon de le vivre : te sentir gêné, t’ennuyer ou trouver ça nul, ce sont des réponses valables, et de la matière pour ton journal."));
 
   root.appendChild(el("h3", "sec", "Comment faire"));
   W3_STEPS.forEach(function (s, i) {
@@ -366,7 +364,7 @@ function buildWeek3(root) {
   });
 
   root.appendChild(el("h3", "sec", "Des idées à Bruxelles cette semaine"));
-  ph("", "J’ai fait quelques recherches : voici mes suggestions pour la semaine du 16 au 22 novembre. Vérifie les horaires et les prix avant d’y aller.");
+  ph("", "J’ai fait quelques recherches poru faciliter le truc, j'ai qques suggestions pour la semaine du 16 au 22 novembre mais vérifie avant d’y aller.");
   ph("", "J’ai aussi une connaissance, Zoé, qui tient un compte Instagram où elle partage chaque semaine ce qu’il y a à faire à Bruxelles : <a href='https://www.instagram.com/zoeplve/' target='_blank' rel='noopener'>@zoeplve</a>. Il y a beaucoup à faire, donc planifie-le au plus vite : choisis ton activité et mets-la dans ton agenda dès aujourd’hui.");
   W3_BXL.forEach(function (grp) {
     root.appendChild(el("h4", "sub", grp.g));
@@ -374,8 +372,8 @@ function buildWeek3(root) {
   });
 
   root.appendChild(el("h3", "sec", "Deux choses en plus cette semaine"));
-  ph("step", "<b>Prendre rendez-vous chez un psy.</b> Je t’ai conseillé Elodie Zone, mais tu peux aussi regarder le site <a href='https://psybru.be/fr' target='_blank' rel='noopener'>PsyBru</a> (merci Nissrine pour la reco) pour voir d’autres profils. C’est un réseau de psychologues à Bruxelles avec des séances à tarif réduit (11 €, ou 4 € avec le statut BIM, d’après ce que j’ai lu : vérifie sur le site), et il faut une mutuelle belge. Les délais peuvent être longs : prends rendez-vous maintenant, pas dans trois semaines.");
-  ph("step", "<b>T’inscrire à un run club.</b> Tu dois le faire cette semaine. Courir en groupe, c’est une façon simple de rencontrer des gens sans devoir faire la conversation : tu cours, et tu parles si tu en as envie. Tu n’as pas besoin d’être sportif. Voici quatre options, et regarde leur Instagram avant ta première sortie, car les horaires peuvent changer :");
+  ph("step", "<b>Prendre rendez-vous chez un psy.</b> Je t’ai conseillé Elodie Zone, mais tu peux aussi regarder le site <a href='https://psybru.be/fr' target='_blank' rel='noopener'>PsyBru</a> (merci Nissrine pour la reco) pour voir d’autres profils. C’est un réseau de psychologues à Bruxelles avec des recos. Les délais peuvent être longs donc prends rendez-vous maintenant, pas dans trois semaines.");
+  ph("step", "<b>T’inscrire à un run club.</b> Tu dois le faire cette semaine. Courir en groupe, c’est une façon simple de rencontrer des gens sans devoir faire la conversation : tu cours, et tu parles si tu en as envie, il y en a beaucoup qui organisent un verre après. Voici quatre options, et regarde leur Instagram avant ta première sortie, car les horaires peuvent changer, et j'ai fait ça en despi car j'étais en retard pour cette page oupssss:");
   W3_RUN.forEach(function (it) { ph("step", it); });
 
   root.appendChild(el("h3", "sec", "Ta todo list"));
@@ -392,7 +390,7 @@ function buildWeek3(root) {
 
   root.appendChild(el("h3", "sec", "Tes questions"));
   root.appendChild(el("p", "", "Réponds avec tes mots, aussi longtemps ou aussi court que tu veux. Le but n’est pas de bien écrire, c’est d’être honnête avec toi."));
-  root.appendChild(el("p", "hm", "Ce journal est à toi. Ce que tu sauvegardes avec le bouton en bas de page, je peux le lire. Ce que tu n’enregistres pas reste uniquement sur ton appareil. Écris ce que tu as envie de partager, et garde le reste pour toi."));
+  root.appendChild(el("p", "hm", "Ce journal est à toi. L'objectif est qu'il te serve de guide sur les questions que tu peux te poser pour l'introspection après ce moment avec toi. Il est donc pas obligatoire de répondre à tout, j'ai juste essayé de réfléchir à des questions ouvertes pouvant t'amener à te poser les bonnes questions également."));
 
   var n = 0;
   function addField(label, key, kind) {
@@ -424,7 +422,7 @@ function buildWeek3(root) {
   root.appendChild(el("h3", "sec", "Pour finir"));
   root.appendChild(el("p", "", "N’oublie pas que tu n’es pas seul, même quand tu te sens seul : tu as des amis qui sont là pour toi."));
   root.appendChild(el("p", "", "Je sais que tu veux faire des efforts, et je suis fier de toi."));
-  root.appendChild(el("p", "", "Si tu complètes toutes les choses à faire cette semaine, tu gagnes un joker avec moi. Tu pourras soit me donner une chose à faire, soit l’utiliser à mon retour pour une activité que tu as vraiment envie de faire, et pas moi."));
+  root.appendChild(el("p", "", "Si tu complètes toutes les choses à faire cette semaine, tu gagnes un joker avec moi. Tu pourras soit me donner une chose à faire, soit l’utiliser à mon retour pour une activité que tu as vraiment envie de faire, et pas moi. Je te fais de gros bisous mon Franou!!!!!!!!!!! On garde contact obvisouly"));
   saveButton(root);
 }
 var w2 = document.getElementById("w2");
