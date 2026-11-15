@@ -60,6 +60,17 @@ input[type=radio]{width:auto;margin:0 .6rem 0 0;accent-color:var(--accent)}
 .opt.wrong{border-style:dashed;text-decoration:line-through;color:var(--mute)}
 button.copy:disabled{opacity:.45;cursor:not-allowed}
 .quiz-btn{margin-bottom:.4rem}
+.note{border-left:4px solid var(--accent);padding:.2rem 0 .2rem 1rem;margin:0 0 1.6rem;max-width:34rem}
+.body .sec{font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;font-weight:800;font-size:1.4rem;letter-spacing:-.01em;margin:2.2rem 0 .7rem}
+.body .sub{font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;font-weight:500;font-size:.85rem;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);margin:1.8rem 0 .6rem}
+.step{margin:0 0 1rem;max-width:34rem}
+.step b{font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;font-weight:800}
+.todo-item{display:flex;align-items:flex-start;gap:.7rem;padding:.6rem 0;border-bottom:1px solid var(--line);max-width:34rem;cursor:pointer}
+input[type=checkbox]{width:1.25rem;height:1.25rem;margin:.3rem 0 0;padding:0;flex:none;accent-color:var(--accent)}
+select{font:inherit;font-size:1rem;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:.35rem;padding:.55rem .65rem;margin:0 0 .6rem}
+select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.q{margin:0 0 1.4rem;max-width:34rem}
+.q label{display:block;margin:0 0 .4rem}
 .sp{display:block;width:100%;max-width:34rem;height:80px;border:0;border-radius:12px;margin:.2rem 0 .8rem}
 @media (max-width:30rem){.body{padding-left:.25rem}}
 </style>
@@ -78,7 +89,7 @@ var START = new Date(2026, 10, 1); // 1er novembre 2026 (mois 0-11 : 10 = novemb
 var WEEKS = [
   {t:"10 musiques qui comptent pour moi", b:"<div id='w1'></div>"},
   {t:"Le quiz : devine-moi", b:"<div id='w2'></div>"},
-  {t:"Le quiz : devine-moi", b:"<p>Cinq questions sur moi. Réponds sans tricher, je te dis ce qu’il en est la semaine prochaine.</p><p class='todo'>À remplacer par tes 5 questions (par exemple : mon plus gros défaut, mon plat préféré…).</p>"},
+  {t:"Solo date : rendez-vous avec toi", b:"<div id='w3'></div>"},
   {t:"Ce que j’écoute en boucle", b:"<p>Le titre que j’ai le plus écouté ces derniers temps : <a href='https://open.spotify.com/track/3FZoov0ORtnr8TznSNI1y2' target='_blank' rel='noopener'>« brand new chanel$ » de Slayyyter</a>.</p><p class='todo'>À compléter avec les autres titres de ta liste.</p>"},
   {t:"Une photo, une histoire", b:"<p class='todo'>À remplacer par une photo d’enfance (ou d’ado) et l’histoire derrière.</p>"},
   {t:"Mon plus gros défaut", b:"<p>Autant te le dire tout de suite.</p><p class='todo'>À remplacer par ta version honnête.</p>"},
@@ -155,8 +166,9 @@ function loadSaved() {
         if (REVEALS[k]) REVEALS[k](saved[k]);
         var f = FIELDS[k];
         if (!f) return;
+        if (f.cb) { f.cb.checked = !!saved[k].c; return; }
         if (f.ti) f.ti.value = saved[k].t || "";
-        f.tx.value = saved[k].w || "";
+        if (f.tx) f.tx.value = saved[k].w || "";
       });
       persist();
     })
@@ -271,8 +283,154 @@ function buildQuiz(root) {
   root.appendChild(total);
   saveButton(root);
 }
+
+var W3_STEPS = [
+  ["Choisis ton activité.", "Une seule, qui te tente un peu : un café avec un livre ou un carnet, une balade dans un quartier ou un parc que tu ne connais pas, une expo ou un musée, un film au cinéma, un bon repas au comptoir, un marché, ou cuisiner quelque chose de nouveau avec une playlist. Prends ce qui te donne un peu envie, pas ce qui est le plus facile."],
+  ["Planifie-la.", "Mets-la dans ton agenda avec un jour et une heure, comme un vrai rendez-vous. Si ce n’est pas planifié, ça ne se fera pas."],
+  ["Prépare-toi.", "Habille-toi comme tu te sens bien, réserve si c’est nécessaire, pars un peu en avance. Traite-toi comme quelqu’un que tu as envie d’impressionner un peu."],
+  ["Pendant le rendez-vous.", "Téléphone en silence dans ta poche. Commande ce dont tu as vraiment envie, pas ce que tu penses qu’on attend de toi. Observe ce que tu vois, entends, sens. Reste au moins une heure."],
+  ["Si c’est inconfortable.", "Les dix premières minutes sont souvent les plus dures. Si tu as envie de partir, reste dix minutes de plus et regarde si ça change. Si vraiment c’est trop, tu peux partir sans te juger et réessayer plus tard avec quelque chose de plus simple, comme un café de trente minutes."],
+  ["Juste après.", "Dès que tu es sorti ou rentré, note trois mots sur ce que tu ressens, sans réfléchir. Réponds ensuite aux questions plus bas, le jour même ou le lendemain, quand ça a un peu décanté."]
+];
+var W3_BXL = [
+  {g:"Faciles, en journée", items:[
+    "Un café avec un livre ou un carnet, ou une balade au Cinquantenaire ou au Bois de la Cambre.",
+    "Le marché aux puces de la place du Jeu de Balle, aux Marolles.",
+    "Un film seul au cinéma, à la Cinematek ou aux Galeries.",
+    "Un musée : l’expo « Inuit – Impressions du Grand Nord canadien » au Musée Art &amp; Histoire (ouverte depuis le 16 octobre), ou l’expo Lucky Luke au Musée de la BD. Beaucoup de musées sont fermés le lundi, vérifie avant."]},
+  {g:"Un cran au-dessus", items:[
+    "<b>Dimanche 22 novembre :</b> le concert d’InAlto et AkroPercu au Palais du Coudenberg, de la musique baroque et du théâtre physique dans les ruines de l’ancien palais.",
+    "<b>Du 20 au 22 novembre :</b> Courts Mais Trash + Queer Mais Trash à l’Espace Magh, un festival de cinéma indépendant et décalé.",
+    "<b>Jusqu’au 7 décembre :</b> Ars Musica, un festival de musique contemporaine autour du Grand Nord. Choisis un concert."]},
+  {g:"Plus audacieux", items:[
+    "<b>Du 19 au 21 novembre :</b> Balkan Trafik! à la Bourse, un festival indoor avec concerts, village et gastronomie des Balkans. Le billet est valable pour une journée.",
+    "<b>Samedi 21 novembre :</b> le Listen Festival, 24 heures de musique électronique dans 15 lieux, dont plusieurs gares de Bruxelles. Seulement si tu aimes vraiment ça."]}
+];
+var W3_RUN = [
+  "<b>BXL Run Crew :</b> des sorties sociales à 9 ou 10 km/h, ouvertes à ceux qui tiennent environ 45 minutes à allure tranquille. Le lundi (5 km) et le jeudi (10 km).",
+  "<b>Brussels Runners :</b> un groupe social et gratuit, débutants bienvenus. Sortie facile de 5 km le samedi à 10 h au Bois de la Cambre. <a href='https://www.meetup.com/brussels-runners' target='_blank' rel='noopener'>Page du groupe</a>.",
+  "<b>Animo Running Club :</b> tous les lundis à 18h30 au Studio Louise, 5 ou 10 km, membres et non-membres bienvenus.",
+  "<b>Trail Trash :</b> des sorties en forêt de Soignes un dimanche sur deux, gratuites, tous niveaux."
+];
+var W3_TODO = [
+  {k:"t0", t:"J’ai choisi mon activité"},
+  {k:"t1", t:"Je l’ai planifiée (jour et heure)"},
+  {k:"t2", t:"Je me suis préparé comme pour un vrai rendez-vous"},
+  {k:"t3", t:"J’ai fait mon solo date, téléphone en silence"},
+  {k:"t4", t:"J’ai noté trois mots à chaud"},
+  {k:"tpsy", t:"J’ai pris rendez-vous chez un psy"},
+  {k:"trun", t:"Je me suis inscrit à un run club"},
+  {k:"t5", t:"J’ai répondu aux questions et sauvegardé"}
+];
+var W3_Q = [
+  {g:"Avant", items:[
+    "Quand j’ai choisi mon activité, qu’est-ce que j’ai ressenti ? Qu’est-ce que j’ai failli choisir à la place, et pourquoi ?",
+    "Quelle petite voix s’est exprimée quand j’ai décidé d’y aller seul ? Qu’est-ce qu’elle disait ?"]},
+  {g:"Pendant", items:[
+    "Pendant les dix premières minutes, qu’est-ce que j’ai ressenti, dans ma tête et dans mon corps ?",
+    "À quel moment ai-je été le plus à l’aise ? Et le moins ?",
+    "Ai-je eu l’impression d’être observé ou jugé ? Qu’est-ce que je pensais que les autres pensaient de moi, et qu’est-ce qui s’est vraiment passé ?",
+    "Qu’est-ce que j’ai remarqué que je ne remarque pas d’habitude ?"]},
+  {g:"La solitude", items:[
+    "Quelle différence ai-je ressentie, pendant ce moment, entre être seul et me sentir seul ?",
+    "Quand je me sens seul d’habitude, de quoi ai-je vraiment besoin : de présence, d’attention, d’être compris, de faire quelque chose avec quelqu’un ?",
+    "Qu’est-ce que je n’ose faire que si quelqu’un m’accompagne ? Qu’est-ce qui me retient ?"]},
+  {g:"Moi avec moi", items:[
+    "Qu’est-ce que j’ai appris sur ce que j’aime quand personne ne me regarde ?",
+    "Comment est-ce que je me suis parlé à moi-même ? Qu’est-ce que je dirais à un ami à ma place ?",
+    "Une chose dont je suis fier d’avoir faite pendant ce rendez-vous."]},
+  {g:"Après", score:"De 0 à 10, à quel point ai-je apprécié ma propre compagnie ?", items:[
+    "Est-ce que je referais un solo date ? Lequel, et quand ?"]}
+];
+
+function buildWeek3(root) {
+  function ph(cls, html) { var p = el("p", cls); p.innerHTML = html; root.appendChild(p); }
+
+  var note = el("div", "note");
+  note.appendChild(el("p", "", "Petit mot avant de commencer : j’ai changé le plan de cette semaine, et je l’ai fait exprès. Ce dont on a parlé cette semaine m’a paru plus important que le reste du programme, alors j’ai préféré passer par là."));
+  note.appendChild(el("p", "", "Cette page est une todo list à réaliser d’ici dimanche prochain. Ce n’est pas un devoir noté : c’est une invitation à passer du temps avec toi, puis à écrire ce que tu ressens, comme dans un journal."));
+  note.appendChild(el("p", "", "Cette semaine, mon objectif est aussi d’apprendre à te connaître quand tu es seul, entre toi et toi-même. C’est une version inédite de toi, qui doit encore grandir, et j’aimerais qu’elle ait la place de le faire."));
+  root.appendChild(note);
+
+  root.appendChild(el("h3", "sec", "Le cadre"));
+  root.appendChild(el("p", "", "Un solo date, c’est un vrai rendez-vous, mais avec toi. Tu choisis une activité que tu ferais volontiers avec quelqu’un, et tu la fais seul, avec la même attention que pour un rendez-vous à deux. L’idée n’est pas de remplir un vide : c’est de découvrir ce que ça fait d’être bien accompagné par soi-même."));
+  root.appendChild(el("p", "", "J’ai découvert ça avec le livre *The Artist’s Way* de Julia Cameron. Elle appelle ça l’artist date : une sortie d’environ deux heures, seul, pour nourrir ta curiosité. Son idée est que la part créative et sensible de toi a besoin d’attention et de jeu, et qu’elle ne se montre pas quand il y a du bruit autour. Passer du temps seul avec toi, c’est aussi apprendre ce que tu aimes vraiment, quand personne ne regarde.".replace(/\*/g, "")));
+  root.appendChild(el("p", "", "Les règles du jeu : une seule activité, d’une à trois heures. Le téléphone reste en silence dans ta poche, et tu ne le sors que pour une photo. Tu y vas pour toi, pas pour être vu ni pour avoir quelque chose à raconter. Et il n’y a pas de bonne façon de le vivre : te sentir gêné, t’ennuyer ou trouver ça nul, ce sont des réponses valables, et de la matière pour ton journal."));
+
+  root.appendChild(el("h3", "sec", "Comment faire"));
+  W3_STEPS.forEach(function (s, i) {
+    var p = el("p", "step");
+    p.appendChild(el("b", "", (i + 1) + ". " + s[0] + " "));
+    p.appendChild(document.createTextNode(s[1]));
+    root.appendChild(p);
+  });
+
+  root.appendChild(el("h3", "sec", "Des idées à Bruxelles cette semaine"));
+  ph("", "J’ai fait quelques recherches : voici mes suggestions pour la semaine du 16 au 22 novembre. Vérifie les horaires et les prix avant d’y aller.");
+  ph("", "J’ai aussi une connaissance, Zoé, qui tient un compte Instagram où elle partage chaque semaine ce qu’il y a à faire à Bruxelles : <a href='https://www.instagram.com/zoeplve/' target='_blank' rel='noopener'>@zoeplve</a>. Il y a beaucoup à faire, donc planifie-le au plus vite : choisis ton activité et mets-la dans ton agenda dès aujourd’hui.");
+  W3_BXL.forEach(function (grp) {
+    root.appendChild(el("h4", "sub", grp.g));
+    grp.items.forEach(function (it) { ph("step", it); });
+  });
+
+  root.appendChild(el("h3", "sec", "Deux choses en plus cette semaine"));
+  ph("step", "<b>Prendre rendez-vous chez un psy.</b> Je t’ai conseillé Elodie Zone, mais tu peux aussi regarder le site <a href='https://psybru.be/fr' target='_blank' rel='noopener'>PsyBru</a> (merci Nissrine pour la reco) pour voir d’autres profils. C’est un réseau de psychologues à Bruxelles avec des séances à tarif réduit (11 €, ou 4 € avec le statut BIM, d’après ce que j’ai lu : vérifie sur le site), et il faut une mutuelle belge. Les délais peuvent être longs : prends rendez-vous maintenant, pas dans trois semaines.");
+  ph("step", "<b>T’inscrire à un run club.</b> Tu dois le faire cette semaine. Courir en groupe, c’est une façon simple de rencontrer des gens sans devoir faire la conversation : tu cours, et tu parles si tu en as envie. Tu n’as pas besoin d’être sportif. Voici quatre options, et regarde leur Instagram avant ta première sortie, car les horaires peuvent changer :");
+  W3_RUN.forEach(function (it) { ph("step", it); });
+
+  root.appendChild(el("h3", "sec", "Ta todo list"));
+  W3_TODO.forEach(function (item) {
+    var lab = el("label", "todo-item");
+    var cb = document.createElement("input"); cb.type = "checkbox";
+    var key = item.k;
+    FIELDS[key] = {cb: cb};
+    cb.checked = !!(STORE[key] || {}).c;
+    cb.addEventListener("change", function () { STORE[key] = {c: cb.checked}; persist(); });
+    lab.appendChild(cb); lab.appendChild(el("span", "", item.t));
+    root.appendChild(lab);
+  });
+
+  root.appendChild(el("h3", "sec", "Tes questions"));
+  root.appendChild(el("p", "", "Réponds avec tes mots, aussi longtemps ou aussi court que tu veux. Le but n’est pas de bien écrire, c’est d’être honnête avec toi."));
+  root.appendChild(el("p", "hm", "Ce journal est à toi. Ce que tu sauvegardes avec le bouton en bas de page, je peux le lire. Ce que tu n’enregistres pas reste uniquement sur ton appareil. Écris ce que tu as envie de partager, et garde le reste pour toi."));
+
+  var n = 0;
+  function addField(label, key, kind) {
+    var d = el("div", "q");
+    var lab = el("label", "", label); lab.htmlFor = key;
+    var f;
+    if (kind === "score") {
+      f = document.createElement("select");
+      var o0 = el("option", "", "Choisir…"); o0.value = ""; f.appendChild(o0);
+      for (var s = 0; s <= 10; s++) { var o = el("option", "", String(s)); o.value = String(s); f.appendChild(o); }
+    } else {
+      f = el("textarea"); f.rows = 4; f.placeholder = "Ta réponse";
+    }
+    f.id = key;
+    FIELDS[key] = {tx: f};
+    f.value = (STORE[key] || {}).w || "";
+    var ev = kind === "score" ? "change" : "input";
+    f.addEventListener(ev, function () { STORE[key] = {w: f.value}; persist(); });
+    d.appendChild(lab); d.appendChild(f); root.appendChild(d);
+  }
+  W3_Q.forEach(function (grp) {
+    root.appendChild(el("h4", "sub", grp.g));
+    if (grp.score) addField(grp.score, "jscore", "score");
+    grp.items.forEach(function (q) { addField(q, "j" + (n++), "text"); });
+  });
+  root.appendChild(el("h4", "sub", "Page libre"));
+  addField("Tout ce que j’ai envie d’écrire sur cette semaine.", "jfree", "text");
+
+  root.appendChild(el("h3", "sec", "Pour finir"));
+  root.appendChild(el("p", "", "N’oublie pas que tu n’es pas seul, même quand tu te sens seul : tu as des amis qui sont là pour toi."));
+  root.appendChild(el("p", "", "Je sais que tu veux faire des efforts, et je suis fier de toi."));
+  root.appendChild(el("p", "", "Si tu complètes toutes les choses à faire cette semaine, tu gagnes un joker avec moi. Tu pourras soit me donner une chose à faire, soit l’utiliser à mon retour pour une activité que tu as vraiment envie de faire, et pas moi."));
+  saveButton(root);
+}
 var w2 = document.getElementById("w2");
 if (w2) buildQuiz(w2);
+var w3 = document.getElementById("w3");
+if (w3) buildWeek3(w3);
 loadSaved();
 
 var st = document.getElementById("status");
