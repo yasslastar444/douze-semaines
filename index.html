@@ -60,6 +60,10 @@ input[type=radio]{width:auto;margin:0 .6rem 0 0;accent-color:var(--accent)}
 .opt.wrong{border-style:dashed;text-decoration:line-through;color:var(--mute)}
 button.copy:disabled{opacity:.45;cursor:not-allowed}
 .quiz-btn{margin-bottom:.4rem}
+.ph{display:block;max-width:100%;max-height:22rem;border-radius:.4rem;margin:.4rem 0 .7rem}
+.pre{white-space:pre-wrap}
+input[type=file]{padding:.45rem}
+.linkbtn{background:none;border:0;padding:0;font:inherit;font-size:1rem;color:var(--accent);text-decoration:underline;cursor:pointer}
 .note{border-left:4px solid var(--accent);padding:.2rem 0 .2rem 1rem;margin:0 0 1.6rem;max-width:34rem}
 .body .sec{font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;font-weight:800;font-size:1.4rem;letter-spacing:-.01em;margin:2.2rem 0 .7rem}
 .body .sub{font-family:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;font-weight:500;font-size:.85rem;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);margin:1.8rem 0 .6rem}
@@ -90,8 +94,8 @@ var WEEKS = [
   {t:"10 musiques qui comptent pour moi", b:"<div id='w1'></div>"},
   {t:"Le quiz : devine-moi", b:"<div id='w2'></div>"},
   {t:"Solo date : rendez-vous avec toi", b:"<div id='w3'></div>"},
-  {t:"Ce que j’écoute en boucle", b:"<p>Le titre que j’ai le plus écouté ces derniers temps : <a href='https://open.spotify.com/track/3FZoov0ORtnr8TznSNI1y2' target='_blank' rel='noopener'>« brand new chanel$ » de Slayyyter</a>.</p><p class='todo'>À compléter avec les autres titres de ta liste.</p>"},
-  {t:"Une photo, une histoire", b:"<p class='todo'>À remplacer par une photo d’enfance (ou d’ado) et l’histoire derrière.</p>"},
+  {t:"Capsule temporelle 2026 → 2027", b:"<div id='w4'></div>"},
+  {t:"Colis en cours de livraison", b:"<p>Destination à checker bientôt disponible</p>"},
   {t:"Mon plus gros défaut", b:"<p>Autant te le dire tout de suite.</p><p class='todo'>À remplacer par ta version honnête.</p>"},
   {t:"Ma question pour toi", b:"<p>Tu as lu six semaines de moi. À ton tour.</p><p class='todo'>À remplacer par une question, et dis-lui où te répondre.</p>"},
   {t:"Ma journée parfaite", b:"<p class='todo'>À remplacer : heure par heure, ou en vrac.</p>"},
@@ -425,10 +429,182 @@ function buildWeek3(root) {
   root.appendChild(el("p", "", "Si tu complètes toutes les choses à faire cette semaine, tu gagnes un joker avec moi. Tu pourras soit me donner une chose à faire, soit l’utiliser à mon retour pour une activité que tu as vraiment envie de faire, et pas moi. Je te fais de gros bisous mon Franou!!!!!!!!!!! On garde contact obvisouly"));
   saveButton(root);
 }
+
+var CAP_DATE = new Date(2027, 0, 1);
+var CAP_REQ = [["letter","ton texte"],["p1","la photo 1"],["p2","la photo 2"],["fier","ce dont tu es fier"],["ameliorer","ce que tu veux améliorer"],["r0","la résolution 1"],["r1","la résolution 2"],["r2","la résolution 3"],["o0","l’objectif 1"],["o1","l’objectif 2"],["o2","l’objectif 3"]];
+
+function b64(u8) { var s = "", i = 0; for (; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+function unb64(s) { var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+function capKey(code, salt, usage) {
+  return crypto.subtle.importKey("raw", new TextEncoder().encode(code), "PBKDF2", false, ["deriveKey"]).then(function (km) {
+    return crypto.subtle.deriveKey({name: "PBKDF2", salt: salt, iterations: 250000, hash: "SHA-256"}, km, {name: "AES-GCM", length: 256}, false, [usage]);
+  });
+}
+function capEncrypt(obj, code) {
+  var salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  return capKey(code, salt, "encrypt").then(function (key) {
+    return crypto.subtle.encrypt({name: "AES-GCM", iv: iv}, key, new TextEncoder().encode(JSON.stringify(obj)));
+  }).then(function (ct) { return {salt: b64(salt), iv: b64(iv), data: b64(new Uint8Array(ct))}; });
+}
+function capDecrypt(box, code) {
+  return capKey(code, unb64(box.salt), "decrypt").then(function (key) {
+    return crypto.subtle.decrypt({name: "AES-GCM", iv: unb64(box.iv)}, key, unb64(box.data));
+  }).then(function (pt) { return JSON.parse(new TextDecoder().decode(pt)); });
+}
+function resizeImage(file, cb) {
+  var rd = new FileReader();
+  rd.onload = function () {
+    var im = new Image();
+    im.onload = function () {
+      var s = Math.min(1, 900 / Math.max(im.width, im.height)), c = document.createElement("canvas");
+      c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      cb(c.toDataURL("image/jpeg", 0.72));
+    };
+    im.src = rd.result;
+  };
+  rd.readAsDataURL(file);
+}
+
+function buildCapsule(root) {
+  var W4 = {};
+  try { W4 = JSON.parse(localStorage.getItem("w4draft") || "{}"); } catch (e) {}
+  function saveDraft() { try { localStorage.setItem("w4draft", JSON.stringify(W4)); } catch (e) {} }
+  var preview = (location.hash === "#apercu");
+
+  var note = el("div", "note");
+  note.appendChild(el("p", "", "Cette semaine, une seule chose à faire, et elle est volontairement simple. Je sais qu’on a mis la barre haute ces dernières semaines : voilà une semaine pour souffler et pour regarder l’année qui se termine."));
+  note.appendChild(el("p", "", "Tu vas écrire une capsule temporelle : un texte, deux photos et quelques questions sur 2026 et 2027. Elle est scellée avec un code que tu choisis, et elle s’ouvrira pour moi le 1er janvier. Je ne peux pas la lire avant : le jour J, tu me donnes ton code."));
+  root.appendChild(note);
+  root.appendChild(el("h3", "sec", "Comment faire"));
+  root.appendChild(el("p", "", "Écris, sans te censurer. Ce n’est pas un exercice de style : écris comme si tu me parlais. Choisis ensuite un code d’au moins 8 caractères, note-le quelque part et ne me le dis pas avant le 1er janvier : si tu l’oublies, la capsule est perdue. Clique enfin sur « Sceller ma capsule » : ni toi ni moi ne pourrons la lire sans le code."));
+
+  var view = el("div"); root.appendChild(view);
+
+  function field(parent, key, label, kind, rows, ph) {
+    var d = el("div", "q"), l = el("label", "", label); l.htmlFor = "c-" + key;
+    var f = kind === "input" ? el("input") : el("textarea");
+    if (kind !== "input") f.rows = rows || 4;
+    f.id = "c-" + key; f.placeholder = ph || ""; f.value = W4[key] || "";
+    f.addEventListener("input", function () { W4[key] = f.value; saveDraft(); });
+    d.appendChild(l); d.appendChild(f); parent.appendChild(d);
+  }
+  function photo(parent, n) {
+    var k = "p" + n, d = el("div", "q"), l = el("label", "", "Photo " + n); l.htmlFor = "c-" + k;
+    var f = el("input"); f.type = "file"; f.accept = "image/*"; f.id = "c-" + k;
+    var prev = el("img", "ph"); prev.alt = "Aperçu de la photo " + n;
+    if (W4[k]) prev.src = W4[k]; else prev.style.display = "none";
+    f.addEventListener("change", function () {
+      if (!f.files[0]) return;
+      resizeImage(f.files[0], function (url) { W4[k] = url; saveDraft(); prev.src = url; prev.style.display = "block"; });
+    });
+    d.appendChild(l); d.appendChild(f); d.appendChild(prev); parent.appendChild(d);
+    field(parent, "c" + n, "Une phrase pour dire pourquoi cette photo (facultatif)", "input", 0, "");
+  }
+
+  function renderForm() {
+    view.textContent = "";
+    view.appendChild(el("h3", "sec", "Ton texte"));
+    view.appendChild(el("p", "", "Écris un paragraphe, un texte, une lettre que je devrai lire au 1er janvier, ce que tu veux : tu peux me raconter ta journée, me raconter ton année, là où tu te projettes pour le futur, tout fera l’affaire."));
+    field(view, "letter", "Ton texte", "area", 10, "Salut…");
+    view.appendChild(el("h3", "sec", "Deux photos"));
+    view.appendChild(el("p", "", "Deux photos de ton année, celles que tu as envie de garder."));
+    photo(view, 1); photo(view, 2);
+    view.appendChild(el("h3", "sec", "2026"));
+    field(view, "fier", "Ce dont je suis fier cette année", "area", 4);
+    field(view, "ameliorer", "Ce que je veux améliorer l’année prochaine", "area", 4);
+    view.appendChild(el("h3", "sec", "2027"));
+    view.appendChild(el("h4", "sub", "Mes 3 résolutions (comment je veux être)"));
+    [0, 1, 2].forEach(function (i) { field(view, "r" + i, "Résolution " + (i + 1), "input"); });
+    view.appendChild(el("h4", "sub", "Mes 3 objectifs pour 2027 (ce que je veux atteindre)"));
+    [0, 1, 2].forEach(function (i) { field(view, "o" + i, "Objectif " + (i + 1), "input"); });
+    view.appendChild(el("h3", "sec", "Pour aller plus loin"));
+    field(view, "mot", "Mon mot pour résumer 2026", "input");
+    field(view, "moment", "Le moment de 2026 que je ne veux pas oublier", "area", 3);
+    field(view, "appris", "Ce que j’ai appris sur moi en 2026", "area", 3);
+    field(view, "promesse", "Une promesse que je me fais pour 2027", "area", 2);
+    field(view, "question", "Une question pour toi, que tu liras le 1er janvier", "area", 2);
+
+    view.appendChild(el("h3", "sec", "Sceller"));
+    view.appendChild(el("p", "", "Choisis ton code (8 caractères minimum), note-le bien, et ne me le donne pas avant le 1er janvier."));
+    var c1 = el("input"); c1.type = "password"; c1.placeholder = "Ton code"; c1.autocomplete = "new-password"; c1.setAttribute("aria-label", "Ton code");
+    var c2 = el("input"); c2.type = "password"; c2.placeholder = "Ton code, encore une fois"; c2.autocomplete = "new-password"; c2.setAttribute("aria-label", "Ton code, encore une fois");
+    var btn = el("button", "copy", "Sceller ma capsule"); btn.type = "button";
+    var msg = el("p", "copied"); msg.setAttribute("role", "status");
+    btn.addEventListener("click", function () {
+      var miss = CAP_REQ.filter(function (r) { return !(W4[r[0]] || "").trim(); }).map(function (r) { return r[1]; });
+      if (miss.length) { msg.textContent = "Il te reste à remplir : " + miss.join(", ") + "."; return; }
+      if (c1.value.length < 8) { msg.textContent = "Choisis un code d’au moins 8 caractères."; return; }
+      if (c1.value !== c2.value) { msg.textContent = "Les deux codes ne sont pas identiques."; return; }
+      if (!confirm("Une fois scellée, la capsule ne peut plus être lue sans ton code. Tu l’as bien noté ?")) return;
+      msg.textContent = "Scellage en cours…"; btn.disabled = true;
+      capEncrypt(W4, c1.value).then(function (box) {
+        return fetch("/api/capsule", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(box)}).then(function (r) {
+          if (!r.ok) throw new Error("save");
+          try { localStorage.removeItem("w4draft"); } catch (e) {}
+          W4 = {};
+          renderSealed(box);
+        });
+      }).catch(function () { msg.textContent = "Le scellage a échoué. Réessaie dans un instant."; btn.disabled = false; });
+    });
+    view.appendChild(c1); view.appendChild(c2); view.appendChild(btn); view.appendChild(msg);
+  }
+
+  function renderOpened(d, host) {
+    host.textContent = "";
+    function sec(t) { host.appendChild(el("h4", "sub", t)); }
+    function para(t) { host.appendChild(el("p", "pre", t)); }
+    host.appendChild(el("h3", "sec", "La capsule"));
+    sec("Le texte"); para(d.letter);
+    sec("Les photos");
+    [1, 2].forEach(function (n) {
+      if (!d["p" + n]) return;
+      var im = el("img", "ph"); im.src = d["p" + n]; im.alt = "Photo " + n; host.appendChild(im);
+      if (d["c" + n]) para(d["c" + n]);
+    });
+    sec("Ce dont il est fier en 2026"); para(d.fier);
+    sec("Ce qu’il veut améliorer en 2027"); para(d.ameliorer);
+    sec("Ses 3 résolutions"); [0, 1, 2].forEach(function (i) { para((i + 1) + ". " + d["r" + i]); });
+    sec("Ses 3 objectifs pour 2027"); [0, 1, 2].forEach(function (i) { para((i + 1) + ". " + d["o" + i]); });
+    [["mot", "Son mot pour résumer 2026"], ["moment", "Le moment à ne pas oublier"], ["appris", "Ce qu’il a appris sur lui en 2026"], ["promesse", "Sa promesse pour 2027"], ["question", "Sa question pour le 1er janvier"]].forEach(function (x) {
+      if ((d[x[0]] || "").trim()) { sec(x[1]); para(d[x[0]]); }
+    });
+  }
+
+  function renderSealed(box) {
+    view.textContent = "";
+    view.appendChild(el("h3", "sec", "Ta capsule est scellée"));
+    view.appendChild(el("p", "", "Elle s’ouvrira pour moi le 1er janvier 2027, quand tu me donneras ton code. Ni toi ni moi ne pouvons la lire avant."));
+    var can = preview || new Date() >= CAP_DATE;
+    var d = el("div", "q"), l = el("label", "", "Ouvrir la capsule (à partir du 1er janvier 2027)"); l.htmlFor = "c-open";
+    var code = el("input"); code.type = "password"; code.id = "c-open"; code.placeholder = "Le code"; code.disabled = !can;
+    var btn = el("button", "copy", "Ouvrir la capsule"); btn.type = "button"; btn.disabled = !can;
+    var msg = el("p", "copied"); msg.setAttribute("role", "status");
+    if (!can) msg.textContent = "Elle s’ouvrira le 1er janvier 2027.";
+    var out = el("div");
+    btn.addEventListener("click", function () {
+      msg.textContent = "Ouverture…";
+      capDecrypt(box, code.value).then(function (data) { msg.textContent = ""; renderOpened(data, out); })
+        .catch(function () { msg.textContent = "Ce n’est pas le bon code."; });
+    });
+    d.appendChild(l); d.appendChild(code); view.appendChild(d); view.appendChild(btn); view.appendChild(msg); view.appendChild(out);
+    var redo = el("p", "copied"), rb = el("button", "linkbtn", "Refaire ma capsule"); rb.type = "button";
+    rb.addEventListener("click", function () { if (confirm("Cela remplacera ta capsule scellée par une nouvelle. Continuer ?")) renderForm(); });
+    redo.appendChild(rb); view.appendChild(redo);
+  }
+
+  view.appendChild(el("p", "copied", "Chargement…"));
+  fetch("/api/capsule", {cache: "no-store"})
+    .then(function (r) { return r.ok ? r.json() : {}; })
+    .then(function (box) { if (box && box.data) renderSealed(box); else renderForm(); })
+    .catch(function () { renderForm(); });
+}
 var w2 = document.getElementById("w2");
 if (w2) buildQuiz(w2);
 var w3 = document.getElementById("w3");
 if (w3) buildWeek3(w3);
+var w4 = document.getElementById("w4");
+if (w4) buildCapsule(w4);
 loadSaved();
 
 var st = document.getElementById("status");
